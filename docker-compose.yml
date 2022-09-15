@@ -1,0 +1,49 @@
+version: "3.9"
+
+services:
+  mongdo_db:
+    image: mongo
+    container_name: mongdo_db
+    restart: always
+    environment:
+      - MONGO_DB=enrolment
+      - MONGO_INITDB_ROOT_USERNAME=test
+      - MONGO_INITDB_ROOT_PASSWORD=test
+    ports:
+    - 27017:27017
+  redis:
+    container_name: redis
+    restart: always
+    image: redis
+    ports:
+    - 6379:6379
+  web:
+    build: .
+    container_name: web_app
+    restart: always
+    command: pipenv run start_server
+    volumes:
+      - .:/code
+    ports:
+      - 80:80
+    environment:
+      - HOST=0.0.0.0
+      - PORT=80
+      - MONGO_DB=enrolment
+      - MONGODB_CONNECTION_URL=mongodb://test:test@localhost:27017
+      - REDIS_URL=redis://localhost:6379
+    depends_on:
+      - mongdo_db
+      - redis
+  celery_beat:
+    build: .
+    container_name: celery_beat_app
+    restart: always
+    command: pipenv run start_celery_beat
+    environment:
+      - MONGO_DB=enrolment
+      - MONGODB_CONNECTION_URL=mongodb://test:test@mongdo_db:27017
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - mongdo_db
+      - redis
